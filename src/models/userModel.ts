@@ -10,7 +10,7 @@ export interface User {
 // Create a new user
 export const createUser = async(user: User) => {
 	const result = await databasePool.query(
-	'INSERT INTO users (username, password) VALUES (?, ?)',
+	'INSERT INTO Users (username, password) VALUES (?, ?)',
 	[user.username, user.password]
   );
   return result[0];
@@ -18,7 +18,7 @@ export const createUser = async(user: User) => {
 
 // Get all users
 export const getUsers = async() => {
-	const result = await databasePool.query('SELECT * FROM users');
+	const result = await databasePool.query('SELECT * FROM Users');
 	return result[0];
 }
 

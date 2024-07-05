@@ -42,7 +42,7 @@
         }
       }
     },
-    "/blogs": {
+    "/blogs/blogs": {
       "get": {
         "summary": "Get all blogs",
         "produces": ["application/json"],

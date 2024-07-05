@@ -6,7 +6,7 @@ import { CreateBlog, GetBlogs, GetBlogById, UpdateBlogById, DeleteBlogById} from
 const router = Router();
 router.post('/create', CreateBlog);
 router.get('/blogs', GetBlogs);
-router.get('/blog/:id', GetBlogById);
-router.put('/update/:id', UpdateBlogById);
-router.delete('/delete/:id', DeleteBlogById);
+router.get('/:id', GetBlogById);
+router.put('/:id', UpdateBlogById);
+router.delete('/:id', DeleteBlogById);
 export default router;
