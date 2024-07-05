@@ -1,3 +1,10 @@
+terraform {
+  backend "s3" {
+    bucket         = "medical-system-deplyment-production-state"
+    region         = "us-east-1"
+  }
+}
+
 provider "aws" {
   region = "us-east-1"
 }
@@ -24,7 +31,7 @@ resource "random_id" "unique" {
 
 # Define IAM Role for ECS Execution
 resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role_${random_id.unique.hex}"
+  name = "ecs_execution_role"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -46,8 +53,8 @@ resource "aws_vpc" "main" {
 }
 
 resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
 }
 
@@ -173,7 +180,7 @@ resource "aws_ecs_task_definition" "medical_system_task" {
 
 # ECS Service
 resource "aws_ecs_service" "medical_system_service" {
-  name            = "medicaldepartureblogsystem-service-${random_id.unique.hex}"
+  name            = "medicaldepartureblogsystem-service"
   cluster         = aws_ecs_cluster.medical_system_cluster.id
   task_definition = aws_ecs_task_definition.medical_system_task.arn
   desired_count   = 1
