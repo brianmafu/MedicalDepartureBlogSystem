@@ -2,6 +2,10 @@ provider "aws" {
   region = "us-east-1"
 }
 
+variable "image_tag" {
+  description = "Tag of the Docker image to deploy"
+  type        = string
+}
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
 }

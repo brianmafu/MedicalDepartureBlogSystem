@@ -1,4 +1,4 @@
-name: Deploy to AWS ECS
+name: Deploy to Production AWS ECS Environment
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
         working-directory: terraform
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="image_tag=$(echo $GITHUB_SHA | cut -c1-7)"
+        run: terraform apply -auto-approve -var="image_tag=latest" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="aws_region=${{ secrets.AWS_REGION }}"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
