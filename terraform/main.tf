@@ -19,7 +19,7 @@ variable "aws_region" {
 
 # Define IAM Role for ECS Execution
 resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role"
+  name = "ecs_execution_role_unique"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -75,7 +75,7 @@ resource "aws_nat_gateway" "gw" {
 }
 
 resource "aws_eip" "nat" {
-  vpc = true
+  domain = "vpc"
 }
 
 resource "aws_route_table" "private" {
