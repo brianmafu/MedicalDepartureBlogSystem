@@ -1,0 +1,253 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Medical Departure Blog System API Documentation",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/blogs/create": {
+      "post": {
+        "summary": "Create a new blog",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "blog",
+            "description": "Blog object that needs to be created",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "user_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Blog created successfully"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/blogs": {
+      "get": {
+        "summary": "Get all blogs",
+        "produces": ["application/json"],
+        "responses": {
+          "200": {
+            "description": "Blogs fetched successfully",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Blog"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/blogs/{id}": {
+      "get": {
+        "summary": "Get blog by ID",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blog fetched successfully",
+            "schema": {
+              "$ref": "#/definitions/Blog"
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update blog by ID",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "blog",
+            "description": "Blog object that needs to be updated",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "user_id": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blog updated successfully"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete blog by ID",
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blog deleted successfully"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/register": {
+      "post": {
+        "summary": "Register a new user",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "user",
+            "description": "User object that needs to be registered",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "User created successfully"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/login": {
+      "post": {
+        "summary": "Login as a user",
+        "consumes": ["application/json"],
+        "produces": ["application/json"],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "credentials",
+            "description": "User credentials for login",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "username": {
+                  "type": "string"
+                },
+                "password": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User logged in successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                },
+                "token": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid credentials"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Blog": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "user_id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
