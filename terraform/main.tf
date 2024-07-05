@@ -92,6 +92,25 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# Security Group within the same VPC
+resource "aws_security_group" "ecs_sg" {
+  vpc_id = aws_vpc.main.id
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # ECS Cluster
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
@@ -156,7 +175,7 @@ resource "aws_ecs_service" "medical_system_service" {
   launch_type     = "FARGATE"
   network_configuration {
     subnets         = [aws_subnet.private.id]  # Private subnet with NAT gateway
-    security_groups = ["sg-07f198e20b7a29385"] # Replace with your security group IDs
+    security_groups = [aws_security_group.ecs_sg.id] # Use the new security group
   }
 }
 
