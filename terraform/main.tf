@@ -17,9 +17,14 @@ variable "aws_region" {
   type        = string
 }
 
+# Generate a unique identifier
+resource "random_id" "unique" {
+  byte_length = 8
+}
+
 # Define IAM Role for ECS Execution
 resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role_unique"
+  name = "ecs_execution_role_${random_id.unique.hex}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -113,12 +118,12 @@ resource "aws_security_group" "ecs_sg" {
 
 # ECS Cluster
 resource "aws_ecs_cluster" "medical_system_cluster" {
-  name = "medicaldepartureblogsystem-cluster"
+  name = "medicaldepartureblogsystem-cluster-${random_id.unique.hex}"
 }
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "medical_system_task" {
-  family                   = "medicaldepartureblogsystem-task"
+  family                   = "medicaldepartureblogsystem-task-${random_id.unique.hex}"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -168,7 +173,7 @@ resource "aws_ecs_task_definition" "medical_system_task" {
 
 # ECS Service
 resource "aws_ecs_service" "medical_system_service" {
-  name            = "medicaldepartureblogsystem-service"
+  name            = "medicaldepartureblogsystem-service-${random_id.unique.hex}"
   cluster         = aws_ecs_cluster.medical_system_cluster.id
   task_definition = aws_ecs_task_definition.medical_system_task.arn
   desired_count   = 1
