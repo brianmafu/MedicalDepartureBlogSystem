@@ -17,16 +17,39 @@ variable "aws_region" {
   type        = string
 }
 
+# Define IAM Role for ECS Execution
+resource "aws_iam_role" "ecs_execution_role" {
+  name = "ecs_execution_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+# Attach policies to ECS Execution Role (example policies)
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# Define ECS Cluster
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
 }
 
+# Define ECS Task Definition
 resource "aws_ecs_task_definition" "medical_system_task" {
   family                   = "medicaldepartureblogsystem-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
+
+  execution_role_arn = aws_iam_role.ecs_execution_role.arn  # Reference the execution role ARN
 
   container_definitions = jsonencode([
     {
@@ -69,6 +92,7 @@ resource "aws_ecs_task_definition" "medical_system_task" {
   ])
 }
 
+# Define ECS Service
 resource "aws_ecs_service" "medical_system_service" {
   name            = "medicaldepartureblogsystem-service"
   cluster         = aws_ecs_cluster.medical_system_cluster.id
@@ -76,8 +100,8 @@ resource "aws_ecs_service" "medical_system_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = ["subnet-0e663d4623409f35c"]
-    security_groups = ["sg-07f198e20b7a29385"]
+    subnets         = ["subnet-0e663d4623409f35c"]  # Replace with your subnet IDs
+    security_groups = ["sg-07f198e20b7a29385"]     # Replace with your security group IDs
   }
 }
 
