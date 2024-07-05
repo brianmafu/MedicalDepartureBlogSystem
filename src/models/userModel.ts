@@ -1,8 +1,8 @@
-import { databasePool } from "../config/database.ts";
+import databasePool from "../config/database";
 
 // User Interface
-interface User {
-  id: number;
+export interface User {
+  id?: number;
   username: string;
   password: string;
 }
@@ -22,9 +22,8 @@ export const getUsers = async() => {
 	return result[0];
 }
 
-# get Users by email
-export const getUserByEmail = async(email: string) => {
-	const result = await databasePool.query('SELECT * FROM users WHERE email = ?', [email]);
-	return result[0];
-}
-
+// get Users by Username
+export const getUserByUsername = async (username: string): Promise<User[]> => {
+  const [rows] = await databasePool.query('SELECT * FROM Users WHERE username = ?', [username]);
+  return rows as User[];
+};

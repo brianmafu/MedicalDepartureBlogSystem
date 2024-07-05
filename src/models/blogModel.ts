@@ -1,20 +1,27 @@
-import { databasePool } from "../config/database.ts";
+import databasePool  from "../config/database";
+import { RowDataPacket } from 'mysql2/promise';
+import { OkPacket } from 'mysql2';
 
 // Blog Interface
-interface Blog {
-  id: number;
+export interface Blog{
+  id?: number;
+  user_id: number;
   title: string;
   content: string;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
+interface BlogRow extends Blog, RowDataPacket {}  // Separate interface for RowDataPacket
 // Create a new blog
-export const createBlog = async(blog: Blog) => {
-	const result = await databasePool.query(
-	'INSERT INTO blogs (title, content) VALUES (?, ?)',
-	[blog.title, blog.content]
+export const createBlog = async (blog: Omit<Blog, 'id' | 'created_at' | 'updated_at'>) => {
+  const { title, content, user_id } = blog;
+  const [result] = await databasePool.query<OkPacket>(
+    'INSERT INTO Blog (user_id, title, content) VALUES (?, ?, ?)',
+    [user_id, title, content]
   );
-  return result[0];
-}
+  return { id: result.insertId, ...blog };
+};
 
 // get all blogs
 export const getBlogs = async() => {
