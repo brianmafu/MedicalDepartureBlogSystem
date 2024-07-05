@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3  # Update to latest version
+        uses: actions/checkout@v3  # Update to the latest version
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3  # Update to latest version
+        uses: actions/setup-node@v3  # Update to the latest version
         with:
           node-version: '20'
 
@@ -43,7 +43,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Download and configure Terraform
-        uses: hashicorp/setup-terraform@v2  # Update to latest version
+        uses: hashicorp/setup-terraform@v2  # Update to the latest version
         with:
           terraform_version: 1.1.5
 
@@ -57,10 +57,15 @@ jobs:
         working-directory: terraform
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="image_tag=latest" -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" -var="aws_region=${{ secrets.AWS_REGION }} -var="aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" -var="aws_secret_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform apply -auto-approve
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_image_tag: "latest"
+          TF_VAR_aws_account_id: ${{ secrets.AWS_ACCOUNT_ID }}
+          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+          TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         working-directory: terraform
