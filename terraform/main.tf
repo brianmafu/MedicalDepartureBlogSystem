@@ -1,6 +1,5 @@
 terraform {
   backend "s3" {
-    bucket         = "medical-system-deplyment-production-state"
     region         = "us-east-1"
   }
 }
