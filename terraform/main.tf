@@ -3,6 +3,7 @@ terraform {
     bucket         = "medical-system-deplyment-production-state"
     region         = "us-east-1"
     key            = "medical-system-deployment-production.tfstate"
+    
   }
 }
 
