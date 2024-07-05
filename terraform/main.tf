@@ -3,6 +3,8 @@ terraform {
     bucket         = "medical-system-deplyment-production-state"
     region         = "us-east-1"
     key            = "medical-system-deployment-production.tfstate"
+    access_key     = var.aws_access_key
+    secret_key     = var.aws_secret_key
   }
 }
 
@@ -23,6 +25,14 @@ variable "aws_account_id" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
+}
+variable "aws_access_key" {
+  description = "AWS access key"
+  type        = string
+}
+variable "aws_secret_key" {
+   description = "AWS secret key"
+   type        = string
 }
 
 # Generate a unique identifier
@@ -126,12 +136,12 @@ resource "aws_security_group" "ecs_sg" {
 
 # ECS Cluster
 resource "aws_ecs_cluster" "medical_system_cluster" {
-  name = "medicaldepartureblogsystem-cluster-${random_id.unique.hex}"
+  name = "medicaldepartureblogsystem-cluster"
 }
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "medical_system_task" {
-  family                   = "medicaldepartureblogsystem-task-${random_id.unique.hex}"
+  family                   = "medicaldepartureblogsystem-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
