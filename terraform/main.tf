@@ -228,7 +228,7 @@ resource "aws_db_instance" "mysql" {
   instance_class         = "db.t3.micro"
   publicly_accessible    = false
   username               = "root"
-  password               = "root123"
+  password               = "rootbrianmafu1234"
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
   vpc_security_group_ids = [aws_security_group.ecs_sg.id]
   tags = {

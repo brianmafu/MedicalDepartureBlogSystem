@@ -8,14 +8,13 @@ import dotenv from 'dotenv';
 import configureSwagger from './swaggerConfig';
 import  databasePool  from './config/database';
 
-dotenv.config();
 // Load environment variables from .env file
+dotenv.config();
 config();
 
-
+// creat Tables
 const createTables = async () => {
   try {
-//    const connection = await mysql.createConnection(dbConfig);
 
     const createUsersTable = `
       CREATE TABLE IF NOT EXISTS Users (
