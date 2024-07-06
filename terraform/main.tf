@@ -32,6 +32,11 @@ variable "aws_secret_key" {
   type        = string
 }
 
+variable "hosted_zone_id" {
+  description = "The Route 53 Hosted Zone ID for the domain"
+  type        = string
+}
+
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs_execution_role"
 
@@ -263,7 +268,7 @@ resource "aws_apigatewayv2_integration" "ecs_integration" {
 
 resource "aws_apigatewayv2_route" "create_blog_route" {
   api_id    = aws_apigatewayv2_api.medical_system_api.id
-  route_key = "POST /blogs/create"
+  route_key = "POST /blogs"
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
@@ -302,12 +307,22 @@ resource "aws_apigatewayv2_route" "login_user_route" {
   route_key = "POST /users/login"
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
-resource "aws_apigatewayv2_route" "api_docs_route" {
+
+resource "aws_apigatewayv2_route" "login_user_route" {
   api_id    = aws_apigatewayv2_api.medical_system_api.id
   route_key = "GET /api-docs"
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
+
+resource "aws_route53_record" "api" {
+  zone_id = var.hosted_zone_id
+  name    = "api.brianmafumedicaldeparture.com"
+  type    = "CNAME"
+  ttl     = 300
+  records = [aws_apigatewayv2_api.medical_system_api.api_endpoint]
+}
+
 output "api_url" {
-  value = aws_apigatewayv2_api.medical_system_api.api_endpoint
+  value = aws_route53_record.api.fqdn
 }
