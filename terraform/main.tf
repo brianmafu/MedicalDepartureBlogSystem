@@ -224,7 +224,7 @@ resource "aws_db_instance" "mysql" {
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "mysql"
-  engine_version         = "8.0.26"
+  engine_version         = "8.0.36"
   instance_class         = "db.t2.micro"
   publicly_accessible    = false
   username               = "root"
