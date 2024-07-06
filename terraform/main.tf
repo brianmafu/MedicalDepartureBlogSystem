@@ -54,6 +54,7 @@ resource "aws_iam_role" "ecs_execution_role" {
       },
       {
         Effect   = "Allow",
+        Principal = { Service = "ecs-tasks.amazonaws.com" },
         Action   = [
           "logs:CreateLogStream",
           "logs:PutLogEvents"
