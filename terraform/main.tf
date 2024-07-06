@@ -154,13 +154,26 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]  // Replace with specific IP range if possible
   }
 
+  // Egress rule to allow all outbound traffic
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "alb_sg" {
+  vpc_id = aws_vpc.main.id
+
   // Ingress rule for ALB listener on port 80 (HTTP)
   ingress {
     description    = "Allow inbound traffic on ALB listener port 80"
     from_port      = 80
     to_port        = 80
     protocol       = "tcp"
-    security_groups = [aws_lb.ecs_lb.security_groups[0]]  // Use the ALB's security group ARN here
+    cidr_blocks    = ["0.0.0.0/0"]
   }
 
   // Egress rule to allow all outbound traffic
@@ -172,7 +185,6 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
 
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
@@ -259,7 +271,7 @@ resource "aws_lb" "ecs_lb" {
   name               = "ecs-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.ecs_sg.id]
+  security_groups    = [aws_security_group.alb_sg.id]  // Use ALB-specific security group here
   subnets            = [aws_subnet.public.id, aws_subnet.private.id]
 
   enable_deletion_protection = false
