@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "medical-system-deplyment-production-state"
+    bucket         = "medical-system-deplyment-production-state-v2"
     region         = "us-east-1"
     key            = "medical-system-deployment-production.tfstate"
     
