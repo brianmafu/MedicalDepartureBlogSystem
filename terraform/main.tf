@@ -49,7 +49,15 @@ resource "aws_iam_role" "ecs_execution_role" {
       Effect    = "Allow",
       Principal = { Service = "ecs-tasks.amazonaws.com" },
       Action    = "sts:AssumeRole"
-    }]
+    },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "arn:aws:logs:us-east-1:475408842073:log-group:/ecs/medicaldepartureblogsystem:*"
+      }]
   })
 }
 resource "aws_iam_policy" "ecs_execution_policy" {
