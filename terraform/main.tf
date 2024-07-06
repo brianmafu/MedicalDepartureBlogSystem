@@ -32,6 +32,11 @@ variable "aws_secret_key" {
   type        = string
 }
 
+variable "hosted_zone_id" {
+  description = "The Route 53 Hosted Zone ID for the domain"
+  type        = string
+}
+
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs_execution_role"
 
@@ -136,47 +141,22 @@ resource "aws_route_table_association" "private" {
 resource "aws_security_group" "ecs_sg" {
   vpc_id = aws_vpc.main.id
 
-  // Ingress rule for ECS service on port 3000
   ingress {
     description = "Allow ECS service inbound traffic on port 3000"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  // Replace with specific IP range if possible
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  // Ingress rule for MySQL on port 3306
   ingress {
     description = "Allow MySQL inbound traffic on port 3306"
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  // Replace with specific IP range if possible
-  }
-
-  // Egress rule to allow all outbound traffic
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
 
-resource "aws_security_group" "alb_sg" {
-  vpc_id = aws_vpc.main.id
-
-  // Ingress rule for ALB listener on port 80 (HTTP)
-  ingress {
-    description    = "Allow inbound traffic on ALB listener port 80"
-    from_port      = 80
-    to_port        = 80
-    protocol       = "tcp"
-    cidr_blocks    = ["0.0.0.0/0"]
-  }
-
-  // Egress rule to allow all outbound traffic
   egress {
     description = "Allow all outbound traffic"
     from_port   = 0
@@ -240,23 +220,18 @@ resource "aws_ecs_service" "medical_system_service" {
     subnets         = [aws_subnet.private.id]
     security_groups = [aws_security_group.ecs_sg.id]
   }
-  load_balancer {
-    target_group_arn = aws_lb_target_group.ecs_target_group.arn
-    container_name   = "medicaldepartureblogsystem-container"
-    container_port   = 3000
-  }
 }
 
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "db_subnet_group"
   subnet_ids = [
-    aws_subnet.private.id,        // Subnet in AZ1
-    aws_subnet.public.id // Subnet in AZ2
+    aws_subnet.private.id,
+    aws_subnet.public.id
   ]
 }
 
 resource "aws_db_instance" "mysql" {
-  identifier             = "medical-db-instance"  # Instance identifier
+  identifier             = "medical-db-instance"
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "mysql"
@@ -268,61 +243,86 @@ resource "aws_db_instance" "mysql" {
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
   vpc_security_group_ids = [aws_security_group.ecs_sg.id]
   tags = {
-    Name = "medical_db"  // Database name within the instance
+    Name = "medical_db"
   }
 }
 
-resource "aws_lb" "ecs_lb" {
-  name               = "ecs-alb"
-  internal           = false
-  load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]  // Use ALB-specific security group here
-  subnets            = [aws_subnet.public.id, aws_subnet.private.id]
-
-  enable_deletion_protection = false
+resource "aws_apigatewayv2_api" "medical_system_api" {
+  name          = "MedicalDepartureBlogSystemAPI"
+  protocol_type = "HTTP"
 }
 
-resource "aws_lb_target_group" "ecs_target_group" {
-  name     = "ecs-target-group"
-  port     = 3000
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
+resource "aws_apigatewayv2_stage" "default" {
+  api_id = aws_apigatewayv2_api.medical_system_api.id
+  name   = "$default"
+  auto_deploy = true
+}
 
-  health_check {
-    path                = "/"
-    protocol            = "HTTP"
-    port                = "traffic-port"
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    timeout             = 5
-    interval            = 10
-  }
+resource "aws_apigatewayv2_integration" "ecs_integration" {
+  api_id           = aws_apigatewayv2_api.medical_system_api.id
+  integration_type = "HTTP_PROXY"
+  integration_uri  = "http://${aws_ecs_service.medical_system_service.network_configuration[0].subnets[0]}.ecs.amazonaws.com:3000"
+  integration_method = "ANY"
+  payload_format_version = "1.0"
+}
+
+resource "aws_apigatewayv2_route" "create_blog_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "POST /blogs"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "get_blogs_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "GET /blogs"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "get_blog_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "GET /blogs/{blogId}"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "delete_blog_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "DELETE /blogs/{blogId}"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "update_blog_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "PATCH /blogs/{blogId}"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "register_user_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "POST /users/register"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "login_user_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "POST /users/login"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
+}
+
+resource "aws_apigatewayv2_route" "login_user_route" {
+  api_id    = aws_apigatewayv2_api.medical_system_api.id
+  route_key = "GET /api-docs"
+  target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
 
-resource "aws_lb_listener" "ecs_listener" {
-  load_balancer_arn = aws_lb.ecs_lb.arn
-  port              = 80
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.ecs_target_group.arn
-  }
-}
-
-resource "aws_route53_zone" "main" {
-  name = "medicaldeparturebrian.com"
-}
-
-resource "aws_route53_record" "ecs_dns" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "ecs.medicaldeparturebrian.com"
+resource "aws_route53_record" "api" {
+  zone_id = var.hosted_zone_id
+  name    = "api.brianmafumedicaldeparture.com"
   type    = "CNAME"
-  ttl     = "300"
-  records = [aws_lb.ecs_lb.dns_name]  // Use ALB DNS name here
+  ttl     = 300
+  records = [aws_apigatewayv2_api.medical_system_api.api_endpoint]
 }
 
-output "cluster_name" {
-  value = aws_ecs_cluster.medical_system_cluster.name
+output "api_url" {
+  value = aws_route53_record.api.fqdn
 }
