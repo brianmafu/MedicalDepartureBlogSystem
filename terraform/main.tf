@@ -217,7 +217,7 @@ resource "aws_db_subnet_group" "db_subnet_group" {
 }
 
 resource "aws_db_instance" "mysql" {
-  identifier             = "medical_db"
+  identifier             = "medical-db-instance"  # Instance identifier
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "mysql"
