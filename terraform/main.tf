@@ -7,7 +7,7 @@ terraform {
 }
 
 provider "aws" {
-  region     = "us-east-1"
+  region     = var.aws_region
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
 }
@@ -35,13 +35,13 @@ variable "aws_secret_key" {
 variable "hosted_zone_id" {
   description = "The Route 53 Hosted Zone ID for the domain"
   type        = string
-  default = "medicaldepartureblogsystem.com"
+  default     = "medicaldepartureblogsystem.com"
 }
 
 variable "domain_name" {
   description = "The domain name for the application"
   type        = string
-  default = "medicaldepartureblogsystem.com"
+  default     = "medicaldepartureblogsystem.com"
 }
 
 resource "aws_iam_role" "ecs_execution_role" {
@@ -254,21 +254,29 @@ resource "aws_db_instance" "mysql" {
   }
 }
 
+resource "aws_lb" "main" {
+  name               = "my-ecs-alb"
+  internal           = false  // Set to true if internal
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [aws_subnet.public.id]  // Replace with your subnets
+}
+
 resource "aws_apigatewayv2_api" "medical_system_api" {
   name          = "MedicalDepartureBlogSystemAPI"
   protocol_type = "HTTP"
 }
 
 resource "aws_apigatewayv2_stage" "default" {
-  api_id = aws_apigatewayv2_api.medical_system_api.id
-  name   = "$default"
+  api_id     = aws_apigatewayv2_api.medical_system_api.id
+  name       = "$default"
   auto_deploy = true
 }
 
 resource "aws_apigatewayv2_integration" "ecs_integration" {
   api_id              = aws_apigatewayv2_api.medical_system_api.id
   integration_type    = "HTTP_PROXY"
-  integration_uri     = "http://${aws_ecs_service.medical_system_service.network_configuration[0].subnets[0]}.ecs.amazonaws.com:3000"
+  integration_uri     = "http://${aws_lb.main.dns_name}:3000"  // Replace with your ALB DNS name
   integration_method  = "ANY"
   payload_format_version = "1.0"
 }
