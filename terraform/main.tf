@@ -51,6 +51,26 @@ resource "aws_iam_role" "ecs_execution_role" {
       Action    = "sts:AssumeRole"
     }]
   })
+
+  // Attach policies related to ECS and other necessary permissions
+  // Attach policy for AmazonEC2ContainerRegistryReadOnly if not already attached
+
+  // Attach policy for CloudWatch Logs permissions
+  policy {
+    policy = jsonencode({
+      Version = "2012-10-17",
+      Statement = [
+        {
+          Effect   = "Allow",
+          Action   = [
+            "logs:CreateLogStream",
+            "logs:PutLogEvents"
+          ],
+          Resource = "arn:aws:logs:us-east-1:475408842073:log-group:/ecs/medicaldepartureblogsystem:*"
+        }
+      ]
+    })
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
