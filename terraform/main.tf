@@ -226,7 +226,7 @@ resource "aws_db_instance" "mysql" {
   engine                 = "mysql"
   engine_version         = "8.0.36"
   instance_class         = "db.t3.micro"
-  publicly_accessible    = false
+  publicly_accessible    = true
   username               = "root"
   password               = "rootbrianmafu1234"
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
