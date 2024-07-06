@@ -312,7 +312,7 @@ resource "aws_route53_record" "ecs_dns" {
   name    = "ecs.medicaldeparturebrian.com"
   type    = "A"
   ttl     = "300"
-  records = [aws_eip.nat.public_ip]  // Use EIP public IP here or ALB DNS name if using ALB
+  records = [aws_lb.ecs_lb.dns_name]  // Use ALB DNS name here
 }
 
 output "cluster_name" {
