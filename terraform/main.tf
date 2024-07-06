@@ -152,7 +152,7 @@ resource "aws_ecs_task_definition" "medical_system_task" {
   container_definitions = jsonencode([
     {
       name      = "medicaldepartureblogsystem-container"
-      image     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/medicaldepartureblogsystem-app"
+      image     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/medicaldepartureblogsystem-app:prod"
       essential = true
       portMappings = [
         {
