@@ -140,20 +140,34 @@ resource "aws_route_table_association" "private" {
 resource "aws_security_group" "ecs_sg" {
   vpc_id = aws_vpc.main.id
 
+  // Ingress rule for ECS service on port 3000
   ingress {
+    description = "Allow ECS service inbound traffic on port 3000"
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"]  // Replace with specific IP range if possible
   }
 
+  // Ingress rule for MySQL on port 3306
+  ingress {
+    description = "Allow MySQL inbound traffic on port 3306"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  // Replace with specific IP range if possible
+  }
+
+  // Egress rule to allow all outbound traffic
   egress {
+    description = "Allow all outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
@@ -226,7 +240,7 @@ resource "aws_db_instance" "mysql" {
   engine                 = "mysql"
   engine_version         = "8.0.36"
   instance_class         = "db.t3.micro"
-  publicly_accessible    = true
+  publicly_accessible    = false
   username               = "root"
   password               = "rootbrianmafu1234"
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
