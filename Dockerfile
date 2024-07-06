@@ -12,7 +12,8 @@ RUN npm install
 
 # Copy local code to the container image.
 COPY . .
-
+# Copy swagger.json to dist/ directory.
+COPY swagger.json ./dist/swagger.json
 # Build the TypeScript code.
 RUN npm run build
 
