@@ -31,6 +31,50 @@ variable "aws_secret_key" {
   description = "AWS secret key"
   type        = string
 }
+resource "aws_iam_role" "ecs_execution_role" {
+  name = "ecs_execution_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect    = "Allow",
+        Principal = { Service = "ecs-tasks.amazonaws.com" },
+        Action    = "sts:AssumeRole"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_policy" "ecs_cloudwatch_logs_policy" {
+  name        = "ecs_cloudwatch_logs_policy"
+  description = "Policy for ECS tasks to write logs to CloudWatch Logs"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "arn:aws:logs:us-east-1:${var.aws_account_id}:log-group:/ecs/medicaldepartureblogsystem:*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_cloudwatch" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
+}
 
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
