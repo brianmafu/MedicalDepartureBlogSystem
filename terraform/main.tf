@@ -136,6 +136,11 @@ resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
 }
 
+resource "aws_cloudwatch_log_group" "ecs_log_group" {
+  name              = "/ecs/medicaldepartureblogsystem"
+  retention_in_days = 7
+}
+
 resource "aws_ecs_task_definition" "medical_system_task" {
   family                   = "medicaldepartureblogsystem-task"
   network_mode             = "awsvpc"
@@ -160,6 +165,14 @@ resource "aws_ecs_task_definition" "medical_system_task" {
       { name = "DB_PASSWORD",  value = "root123" },
       { name = "DB_NAME",  value = "medical_db" }
     ]
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = "/ecs/medicaldepartureblogsystem"
+        awslogs-region        = "us-east-1"
+        awslogs-stream-prefix = "ecs"
+      }
+    }
   }])
 }
 
