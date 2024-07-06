@@ -308,7 +308,7 @@ resource "aws_apigatewayv2_route" "login_user_route" {
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
-resource "aws_apigatewayv2_route" "login_user_route" {
+resource "aws_apigatewayv2_route" "api_docs_route" {
   api_id    = aws_apigatewayv2_api.medical_system_api.id
   route_key = "GET /api-docs"
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
