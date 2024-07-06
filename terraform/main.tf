@@ -1,4 +1,3 @@
-# Define Terraform backend configuration
 terraform {
   backend "s3" {
     bucket = "medical-system-deplyment-production-state-v2"
@@ -7,14 +6,12 @@ terraform {
   }
 }
 
-# Define AWS provider configuration
 provider "aws" {
   region     = "us-east-1"
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
 }
 
-# Define variables
 variable "aws_account_id" {
   description = "AWS account ID"
   type        = string
@@ -47,7 +44,6 @@ variable "domain_name" {
   default     = "medicaldepartureblogsystem.com"
 }
 
-# Define VPC, subnets, and networking resources
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -56,11 +52,26 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
+  availability_zone       = "us-east-1a"
 }
 
 resource "aws_subnet" "private" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "us-east-1a"
+}
+
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.3.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "private_b" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.4.0/24"
+  availability_zone = "us-east-1b"
 }
 
 resource "aws_internet_gateway" "gw" {
@@ -104,7 +115,6 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# Define ECS execution role and policies
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs_execution_role"
 
@@ -150,7 +160,6 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_cloudwatch"
   policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
 }
 
-# Define ECS security group
 resource "aws_security_group" "ecs_sg" {
   name        = "ecs-security-group"
   description = "Security group for ECS service"
@@ -181,7 +190,6 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
-# Define ECS cluster, task definition, service, and related resources
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
 }
@@ -233,17 +241,16 @@ resource "aws_ecs_service" "medical_system_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.private.id]
+    subnets         = [aws_subnet.private.id, aws_subnet.private_b.id]
     security_groups = [aws_security_group.ecs_sg.id]
   }
 }
 
-# Define RDS database subnet group and instance
 resource "aws_db_subnet_group" "db_subnet_group" {
-  name       = "db_subnet_group"
+  name = "db_subnet_group"
   subnet_ids = [
     aws_subnet.private.id,
-    aws_subnet.public.id
+    aws_subnet.private_b.id
   ]
 }
 
@@ -264,13 +271,11 @@ resource "aws_db_instance" "mysql" {
   }
 }
 
-# Define ALB security group
 resource "aws_security_group" "alb_sg" {
   name        = "alb-security-group"
   description = "Security group for Application Load Balancer"
   vpc_id      = aws_vpc.main.id
 
-  // Ingress and egress rules as per your requirements
   ingress {
     description = "Allow HTTP inbound traffic"
     from_port   = 80
@@ -288,16 +293,17 @@ resource "aws_security_group" "alb_sg" {
   }
 }
 
-# Define ALB
 resource "aws_lb" "main" {
-  name               = "my-ecs-alb"
-  internal           = false  // Set to true if internal
+  name               = "ecs-alb"
+  internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [aws_subnet.public.id]  // Replace with your subnets
+  subnets            = [aws_subnet.public.id, aws_subnet.public_b.id]
+}
+resource "aws_route53_zone" "main" {
+  name = "medicaldepartureblogsystem.com"
 }
 
-# Define API Gateway v2 API, integrations, routes, and Route 53 DNS record
 resource "aws_apigatewayv2_api" "medical_system_api" {
   name          = "MedicalDepartureBlogSystemAPI"
   protocol_type = "HTTP"
@@ -312,7 +318,7 @@ resource "aws_apigatewayv2_stage" "default" {
 resource "aws_apigatewayv2_integration" "ecs_integration" {
   api_id              = aws_apigatewayv2_api.medical_system_api.id
   integration_type    = "HTTP_PROXY"
-  integration_uri     = "http://${aws_lb.main.dns_name}:3000"  // Replace with your ALB DNS name
+  integration_uri     = "http://${aws_lb.main.dns_name}:3000"
   integration_method  = "ANY"
   payload_format_version = "1.0"
 }
@@ -365,16 +371,14 @@ resource "aws_apigatewayv2_route" "api_docs_route" {
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
-# Define Route 53 DNS record for API
 resource "aws_route53_record" "api" {
-  zone_id = var.hosted_zone_id
+  zone_id = aws_route53_zone.main.zone_id
   name    = "api.${var.domain_name}"
   type    = "CNAME"
   ttl     = 300
   records = [aws_apigatewayv2_api.medical_system_api.api_endpoint]
 }
 
-# Define output for API URL
 output "api_url" {
   value = aws_route53_record.api.fqdn
 }
