@@ -35,6 +35,13 @@ variable "aws_secret_key" {
 variable "hosted_zone_id" {
   description = "The Route 53 Hosted Zone ID for the domain"
   type        = string
+  default = "medicaldepartureblogsystem.com"
+}
+
+variable "domain_name" {
+  description = "The domain name for the application"
+  type        = string
+  default = "medicaldepartureblogsystem.com"
 }
 
 resource "aws_iam_role" "ecs_execution_role" {
@@ -259,10 +266,10 @@ resource "aws_apigatewayv2_stage" "default" {
 }
 
 resource "aws_apigatewayv2_integration" "ecs_integration" {
-  api_id           = aws_apigatewayv2_api.medical_system_api.id
-  integration_type = "HTTP_PROXY"
-  integration_uri  = "http://${aws_ecs_service.medical_system_service.network_configuration[0].subnets[0]}.ecs.amazonaws.com:3000"
-  integration_method = "ANY"
+  api_id              = aws_apigatewayv2_api.medical_system_api.id
+  integration_type    = "HTTP_PROXY"
+  integration_uri     = "http://${aws_ecs_service.medical_system_service.network_configuration[0].subnets[0]}.ecs.amazonaws.com:3000"
+  integration_method  = "ANY"
   payload_format_version = "1.0"
 }
 
@@ -314,10 +321,9 @@ resource "aws_apigatewayv2_route" "api_docs_route" {
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
-
 resource "aws_route53_record" "api" {
   zone_id = var.hosted_zone_id
-  name    = "api.brianmafumedicaldeparture.com"
+  name    = "api.${var.domain_name}"
   type    = "CNAME"
   ttl     = 300
   records = [aws_apigatewayv2_api.medical_system_api.api_endpoint]
