@@ -240,6 +240,11 @@ resource "aws_ecs_service" "medical_system_service" {
     subnets         = [aws_subnet.private.id]
     security_groups = [aws_security_group.ecs_sg.id]
   }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.ecs_target_group.arn
+    container_name   = "medicaldepartureblogsystem-container"
+    container_port   = 3000
+  }
 }
 
 resource "aws_db_subnet_group" "db_subnet_group" {
@@ -285,12 +290,15 @@ resource "aws_lb_target_group" "ecs_target_group" {
 
   health_check {
     path                = "/"
-    interval            = 30
-    timeout             = 10
-    healthy_threshold   = 3
-    unhealthy_threshold = 3
+    protocol            = "HTTP"
+    port                = "traffic-port"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 10
   }
 }
+
 
 resource "aws_lb_listener" "ecs_listener" {
   load_balancer_arn = aws_lb.ecs_lb.arn
