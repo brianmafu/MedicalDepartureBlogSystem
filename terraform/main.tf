@@ -1,3 +1,4 @@
+# Define Terraform backend configuration
 terraform {
   backend "s3" {
     bucket = "medical-system-deplyment-production-state-v2"
@@ -6,12 +7,14 @@ terraform {
   }
 }
 
+# Define AWS provider configuration
 provider "aws" {
-  region     = var.aws_region
+  region     = "us-east-1"
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
 }
 
+# Define variables
 variable "aws_account_id" {
   description = "AWS account ID"
   type        = string
@@ -44,51 +47,7 @@ variable "domain_name" {
   default     = "medicaldepartureblogsystem.com"
 }
 
-resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow",
-        Principal = { Service = "ecs-tasks.amazonaws.com" },
-        Action    = "sts:AssumeRole"
-      },
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
-  role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_policy" "ecs_cloudwatch_logs_policy" {
-  name        = "ecs_cloudwatch_logs_policy"
-  description = "Policy for ECS tasks to write logs to CloudWatch Logs"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ],
-        Resource = "arn:aws:logs:us-east-1:${var.aws_account_id}:log-group:/ecs/medicaldepartureblogsystem:*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_cloudwatch" {
-  role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
-}
-
+# Define VPC, subnets, and networking resources
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -145,8 +104,57 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# Define ECS execution role and policies
+resource "aws_iam_role" "ecs_execution_role" {
+  name = "ecs_execution_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect    = "Allow",
+        Principal = { Service = "ecs-tasks.amazonaws.com" },
+        Action    = "sts:AssumeRole"
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+resource "aws_iam_policy" "ecs_cloudwatch_logs_policy" {
+  name        = "ecs_cloudwatch_logs_policy"
+  description = "Policy for ECS tasks to write logs to CloudWatch Logs"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = "arn:aws:logs:us-east-1:${var.aws_account_id}:log-group:/ecs/medicaldepartureblogsystem:*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_cloudwatch" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
+}
+
+# Define ECS security group
 resource "aws_security_group" "ecs_sg" {
-  vpc_id = aws_vpc.main.id
+  name        = "ecs-security-group"
+  description = "Security group for ECS service"
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     description = "Allow ECS service inbound traffic on port 3000"
@@ -173,6 +181,7 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
+# Define ECS cluster, task definition, service, and related resources
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
 }
@@ -229,6 +238,7 @@ resource "aws_ecs_service" "medical_system_service" {
   }
 }
 
+# Define RDS database subnet group and instance
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "db_subnet_group"
   subnet_ids = [
@@ -254,6 +264,31 @@ resource "aws_db_instance" "mysql" {
   }
 }
 
+# Define ALB security group
+resource "aws_security_group" "alb_sg" {
+  name        = "alb-security-group"
+  description = "Security group for Application Load Balancer"
+  vpc_id      = aws_vpc.main.id
+
+  // Ingress and egress rules as per your requirements
+  ingress {
+    description = "Allow HTTP inbound traffic"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Define ALB
 resource "aws_lb" "main" {
   name               = "my-ecs-alb"
   internal           = false  // Set to true if internal
@@ -262,6 +297,7 @@ resource "aws_lb" "main" {
   subnets            = [aws_subnet.public.id]  // Replace with your subnets
 }
 
+# Define API Gateway v2 API, integrations, routes, and Route 53 DNS record
 resource "aws_apigatewayv2_api" "medical_system_api" {
   name          = "MedicalDepartureBlogSystemAPI"
   protocol_type = "HTTP"
@@ -329,6 +365,7 @@ resource "aws_apigatewayv2_route" "api_docs_route" {
   target    = "integrations/${aws_apigatewayv2_integration.ecs_integration.id}"
 }
 
+# Define Route 53 DNS record for API
 resource "aws_route53_record" "api" {
   zone_id = var.hosted_zone_id
   name    = "api.${var.domain_name}"
@@ -337,6 +374,7 @@ resource "aws_route53_record" "api" {
   records = [aws_apigatewayv2_api.medical_system_api.api_endpoint]
 }
 
+# Define output for API URL
 output "api_url" {
   value = aws_route53_record.api.fqdn
 }
