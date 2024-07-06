@@ -32,55 +32,6 @@ variable "aws_secret_key" {
   type        = string
 }
 
-resource "random_id" "unique" {
-  byte_length = 8
-}
-
-resource "aws_iam_role" "ecs_execution_role" {
-  name = "ecs_execution_role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect    = "Allow",
-        Principal = { Service = "ecs-tasks.amazonaws.com" },
-        Action    = "sts:AssumeRole"
-      },
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
-  role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_policy" "ecs_cloudwatch_logs_policy" {
-  name        = "ecs_cloudwatch_logs_policy"
-  description = "Policy for ECS tasks to write logs to CloudWatch Logs"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ],
-        Resource = "arn:aws:logs:us-east-1:${var.aws_account_id}:log-group:/ecs/medicaldepartureblogsystem:*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_cloudwatch" {
-  role       = aws_iam_role.ecs_execution_role.name
-  policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
-}
-
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -120,7 +71,7 @@ resource "aws_nat_gateway" "gw" {
 }
 
 resource "aws_eip" "nat" {
-  domain = "vpc"
+  vpc      = true
 }
 
 resource "aws_route_table" "private" {
@@ -167,7 +118,6 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
 
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
@@ -248,6 +198,54 @@ resource "aws_db_instance" "mysql" {
   tags = {
     Name = "medical_db"  // Database name within the instance
   }
+}
+
+resource "aws_lb" "ecs_lb" {
+  name               = "ecs-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.ecs_sg.id]
+  subnets            = [aws_subnet.public.id]
+
+  enable_deletion_protection = false
+}
+
+resource "aws_lb_target_group" "ecs_target_group" {
+  name     = "ecs-target-group"
+  port     = 3000
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path                = "/"
+    interval            = 30
+    timeout             = 10
+    healthy_threshold   = 3
+    unhealthy_threshold = 3
+  }
+}
+
+resource "aws_lb_listener" "ecs_listener" {
+  load_balancer_arn = aws_lb.ecs_lb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.ecs_target_group.arn
+  }
+}
+
+resource "aws_route53_zone" "main" {
+  name = "medicaldeparturebrian.com"
+}
+
+resource "aws_route53_record" "ecs_dns" {
+  zone_id = aws_route53_zone.main.zone_id
+  name    = "ecs.medicaldeparturebrian.com"
+  type    = "A"
+  ttl     = "300"
+  records = [aws_eip.nat.public_ip]  // Use EIP public IP here or ALB DNS name if using ALB
 }
 
 output "cluster_name" {
