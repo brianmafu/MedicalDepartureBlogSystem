@@ -228,6 +228,9 @@ resource "aws_db_instance" "mysql" {
   password               = "root123"
   db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
   vpc_security_group_ids = [aws_security_group.ecs_sg.id]
+  tags = {
+    Name = "medical_db"  // Database name within the instance
+  }
 }
 
 output "cluster_name" {
