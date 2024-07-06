@@ -213,7 +213,10 @@ resource "aws_ecs_service" "medical_system_service" {
 
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "db_subnet_group"
-  subnet_ids = [aws_subnet.private.id]
+  subnet_ids = [
+    aws_subnet.private.id,        // Subnet in AZ1
+    aws_subnet.public.id // Subnet in AZ2 
+  ]
 }
 
 resource "aws_db_instance" "mysql" {
