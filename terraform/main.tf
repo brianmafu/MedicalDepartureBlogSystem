@@ -43,22 +43,34 @@ resource "random_id" "unique" {
 
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs_execution_role"
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect    = "Allow",
-      Principal = { Service = "ecs-tasks.amazonaws.com" },
-      Action    = ["sts:AssumeRole", "logs:CreateLogStream", "logs:PutLogEvents"]
-    },
+    Statement = [
+      {
+        Effect    = "Allow",
+        Principal = { Service = "ecs-tasks.amazonaws.com" },
+        Action    = "sts:AssumeRole"
+      },
+      {
+        Effect   = "Allow",
+        Action   = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        Resource = [
+          "arn:aws:logs:us-east-1:475408842073:log-group:/ecs/medicaldepartureblogsystem:*"
+        ]
+      }
     ]
   })
 }
+
 
 resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
   role       = aws_iam_role.ecs_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
-
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
