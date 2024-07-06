@@ -1,14 +1,13 @@
 terraform {
   backend "s3" {
-    bucket         = "medical-system-deplyment-production-state-v2"
-    region         = "us-east-1"
-    key            = "medical-system-deployment-production.tfstate"
-    
+    bucket = "medical-system-deplyment-production-state-v2"
+    region = "us-east-1"
+    key    = "medical-system-deployment-production.tfstate"
   }
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region     = "us-east-1"
   access_key = var.aws_access_key
   secret_key = var.aws_secret_key
 }
@@ -27,28 +26,28 @@ variable "aws_region" {
   description = "AWS region"
   type        = string
 }
+
 variable "aws_access_key" {
   description = "AWS access key"
   type        = string
 }
+
 variable "aws_secret_key" {
-   description = "AWS secret key"
-   type        = string
+  description = "AWS secret key"
+  type        = string
 }
 
-# Generate a unique identifier
 resource "random_id" "unique" {
   byte_length = 8
 }
 
-# Define IAM Role for ECS Execution
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs_execution_role"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
       Action    = "sts:AssumeRole"
     }]
   })
@@ -59,7 +58,6 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# VPC and Networking Resources
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -116,7 +114,6 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# Security Group within the same VPC
 resource "aws_security_group" "ecs_sg" {
   vpc_id = aws_vpc.main.id
 
@@ -135,12 +132,10 @@ resource "aws_security_group" "ecs_sg" {
   }
 }
 
-# ECS Cluster
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
 }
 
-# ECS Task Definition
 resource "aws_ecs_task_definition" "medical_system_task" {
   family                   = "medicaldepartureblogsystem-task"
   network_mode             = "awsvpc"
@@ -149,48 +144,25 @@ resource "aws_ecs_task_definition" "medical_system_task" {
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
 
-  container_definitions = jsonencode([
-    {
-      name      = "medicaldepartureblogsystem-container"
-      image     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/medicaldepartureblogsystem-app:prod"
-      essential = true
-      portMappings = [
-        {
-          containerPort = 3000
-          hostPort      = 3000
-        }
-      ]
-      environment = [
-        {
-          name  = "NODE_ENV"
-          value = "production"
-        },
-        {
-          name  = "JWT_SECRET"
-          value = "some_jwt_secret"
-        },
-        {
-          name  = "DB_HOST"
-          value = "mysql"
-        },
-        {
-          name  = "DB_USER"
-          value = "root"
-        },
-        {
-          name  = "DB_PASSWORD"
-          value = "root123"
-        },
-        {
-          name  = "DB_NAME"
-          value = "medical_db"
-        }
-      ]
-    }
-  ])
+  container_definitions = jsonencode([{
+    name      = "medicaldepartureblogsystem-container"
+    image     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/medicaldepartureblogsystem-app:prod"
+    essential = true
+    portMappings = [{
+      containerPort = 3000
+      hostPort      = 3000
+    }]
+    environment = [
+      { name = "NODE_ENV",  value = "production" },
+      { name = "JWT_SECRET",  value = "some_jwt_secret" },
+      { name = "DB_HOST",  value = "mysql" },
+      { name = "DB_USER",  value = "root" },
+      { name = "DB_PASSWORD",  value = "root123" },
+      { name = "DB_NAME",  value = "medical_db" }
+    ]
+  }])
 }
 
-# ECS Service
 resource "aws_ecs_service" "medical_system_service" {
   name            = "medicaldepartureblogsystem-service"
   cluster         = aws_ecs_cluster.medical_system_cluster.id
@@ -198,8 +170,8 @@ resource "aws_ecs_service" "medical_system_service" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets         = [aws_subnet.private.id]  # Private subnet with NAT gateway
-    security_groups = [aws_security_group.ecs_sg.id] # Use the new security group
+    subnets         = [aws_subnet.private.id]
+    security_groups = [aws_security_group.ecs_sg.id]
   }
 }
 
