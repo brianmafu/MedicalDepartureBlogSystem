@@ -215,7 +215,7 @@ resource "aws_db_subnet_group" "db_subnet_group" {
   name       = "db_subnet_group"
   subnet_ids = [
     aws_subnet.private.id,        // Subnet in AZ1
-    aws_subnet.public.id // Subnet in AZ2 
+    aws_subnet.public.id // Subnet in AZ2
   ]
 }
 
@@ -224,7 +224,7 @@ resource "aws_db_instance" "mysql" {
   allocated_storage      = 20
   storage_type           = "gp2"
   engine                 = "mysql"
-  engine_version         = "8.0.27"
+  engine_version         = "8.0.26"
   instance_class         = "db.t2.micro"
   publicly_accessible    = false
   username               = "root"
