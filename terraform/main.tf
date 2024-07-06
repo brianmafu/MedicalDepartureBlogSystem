@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket = "medical-system-deplyment-production-state-v2"
+    bucket = "medical-system-deployment-production-state-v2"
     region = "us-east-1"
     key    = "medical-system-deployment-production.tfstate"
   }
@@ -156,11 +156,11 @@ resource "aws_security_group" "ecs_sg" {
 
   // Ingress rule for ALB listener on port 80 (HTTP)
   ingress {
-    description = "Allow inbound traffic on ALB listener port 80"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    security_groups = [aws_lb.ecs_lb.security_groups[0]]  // Use the ALB's security group
+    description    = "Allow inbound traffic on ALB listener port 80"
+    from_port      = 80
+    to_port        = 80
+    protocol       = "tcp"
+    security_groups = [aws_lb.ecs_lb.security_groups[0]]  // Use the ALB's security group ARN here
   }
 
   // Egress rule to allow all outbound traffic
@@ -172,6 +172,7 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
 
 resource "aws_ecs_cluster" "medical_system_cluster" {
   name = "medicaldepartureblogsystem-cluster"
@@ -258,6 +259,7 @@ resource "aws_lb" "ecs_lb" {
   name               = "ecs-alb"
   internal           = false
   load_balancer_type = "application"
+  security_groups    = [aws_security_group.ecs_sg.id]
   subnets            = [aws_subnet.public.id, aws_subnet.private.id]
 
   enable_deletion_protection = false
@@ -303,15 +305,4 @@ resource "aws_route53_record" "ecs_dns" {
 
 output "cluster_name" {
   value = aws_ecs_cluster.medical_system_cluster.name
-}
-
-// Ensure the ALB is created before modifying its security group
-resource "null_resource" "update_alb_security_group" {
-  depends_on = [aws_lb.ecs_lb]
-
-  provisioner "local-exec" {
-    command = <<EOF
-aws elbv2 modify-load-balancer-attributes --load-balancer-arn "${aws_lb.ecs_lb.arn}" --attributes "Key=access_logs.s3.enabled,Value=true"
-EOF
-  }
 }
