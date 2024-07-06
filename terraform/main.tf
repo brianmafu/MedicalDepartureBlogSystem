@@ -12,11 +12,6 @@ provider "aws" {
   secret_key = var.aws_secret_key
 }
 
-variable "image_tag" {
-  description = "Tag of the Docker image to deploy"
-  type        = string
-}
-
 variable "aws_account_id" {
   description = "AWS account ID"
   type        = string
@@ -56,11 +51,11 @@ resource "aws_iam_role" "ecs_execution_role" {
   })
 }
 
-
 resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_ecr" {
   role       = aws_iam_role.ecs_execution_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
+
 resource "aws_iam_policy" "ecs_cloudwatch_logs_policy" {
   name        = "ecs_cloudwatch_logs_policy"
   description = "Policy for ECS tasks to write logs to CloudWatch Logs"
@@ -85,6 +80,7 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy_cloudwatch"
   role       = aws_iam_role.ecs_execution_role.name
   policy_arn = aws_iam_policy.ecs_cloudwatch_logs_policy.arn
 }
+
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -187,9 +183,9 @@ resource "aws_ecs_task_definition" "medical_system_task" {
     environment = [
       { name = "NODE_ENV",  value = "production" },
       { name = "JWT_SECRET",  value = "some_jwt_secret" },
-      { name = "DB_HOST",  value = "mysql" },
-      { name = "DB_USER",  value = "root" },
-      { name = "DB_PASSWORD",  value = "root123" },
+      { name = "DB_HOST",  value = aws_db_instance.mysql.endpoint },
+      { name = "DB_USER",  value = aws_db_instance.mysql.username },
+      { name = "DB_PASSWORD",  value = aws_db_instance.mysql.password },
       { name = "DB_NAME",  value = "medical_db" }
     ]
     logConfiguration = {
@@ -213,6 +209,25 @@ resource "aws_ecs_service" "medical_system_service" {
     subnets         = [aws_subnet.private.id]
     security_groups = [aws_security_group.ecs_sg.id]
   }
+}
+
+resource "aws_db_subnet_group" "default" {
+  name       = "default"
+  subnet_ids = [aws_subnet.private.id]
+}
+
+resource "aws_db_instance" "mysql" {
+  identifier             = "medical_db"
+  allocated_storage      = 20
+  storage_type           = "gp2"
+  engine                 = "mysql"
+  engine_version         = "8.0.27"
+  instance_class         = "db.t2.micro"
+  publicly_accessible    = false
+  username               = "root"
+  password               = "root123"
+  db_subnet_group_name   = aws_db_subnet_group.default.name
+  vpc_security_group_ids = [aws_security_group.ecs_sg.id]
 }
 
 output "cluster_name" {
